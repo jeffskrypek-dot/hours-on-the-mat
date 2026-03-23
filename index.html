@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Hours on the Mat">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<title>Hours on the Mat</title>
+
+<!-- PWA Manifest inline -->
+<script>
+const manifest = {
+  name: "Hours on the Mat",
+  short_name: "Mat Hours",
+  start_url: ".",
+  display: "standalone",
+  background_color: "#080808",
+  theme_color: "#080808",
+  icons: [
+    { src: generateIcon(), sizes: "192x192", type: "image/png" },
+    { src: generateIcon(), sizes: "512x512", type: "image/png" }
+  ]
+};
+function generateIcon() {
+  const c = document.createElement('canvas');
+  c.width = 192; c.height = 192;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#080808';
+  ctx.fillRect(0,0,192,192);
+  ctx.fillStyle = '#c8922a';
+  ctx.font = 'bold 28px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('HOURS ON', 96, 60);
+  ctx.fillText('THE MAT', 96, 92);
+  ctx.fillStyle = '#c8922a';
+  ctx.fillRect(30, 110, 132, 14);
+  ctx.fillStyle = '#1a1a1a';
+  for(let i=0;i<3;i++) ctx.fillRect(130+i*12, 113, 8, 8);
+  return c.toDataURL('image/png');
+}
+</script>
+
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { background: #080808; color: #f0f0f0; font-family: 'Rajdhani', sans-serif; min-height: 100vh; overflow-x: hidden; }
+  #app { max-width: 420px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; position: relative; }
+
+  /* BJJ ART - fixed watermarks */
+  .bjj-watermark { position: fixed; pointer-events: none; z-index: 0; }
+
+  .screen { display: none; flex: 1; flex-direction: column; padding: 20px; padding-bottom: 90px; overflow-y: auto; position: relative; z-index: 1; }
+  .screen.active { display: flex; }
+
+  h1 { font-family: 'Bebas Neue', sans-serif; font-size: 32px; letter-spacing: 3px; color: #fff; line-height: 1; }
+  h2 { font-family: 'Bebas Neue', sans-serif; font-size: 24px; letter-spacing: 2px; color: #fff; margin-bottom: 16px; }
+  h3 { font-size: 11px; font-weight: 700; color: #666; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px; }
+  .app-title { font-family: 'Bebas Neue', sans-serif; font-size: 13px; letter-spacing: 4px; color: #c8922a; }
+
+  .card { background: #111; border: 1px solid #1e1e1e; border-radius: 10px; padding: 16px; margin-bottom: 12px; }
+
+  input[type=number], input[type=text], select {
+    background: #111; border: 1px solid #2a2a2a; border-radius: 8px;
+    color: #f0f0f0; padding: 12px; font-size: 16px; font-family: 'Rajdhani', sans-serif;
+    width: 100%; margin-bottom: 12px; outline: none;
+  }
+  input:focus, select:focus { border-color: #c8922a; }
+  select option { background: #111; }
+
+  .btn { background: #c8922a; color: #080808; border: none; border-radius: 8px; padding: 14px 20px;
+    font-size: 16px; font-weight: 700; font-family: 'Bebas Neue', sans-serif; letter-spacing: 2px;
+    cursor: pointer; width: 100%; margin-top: 8px; display: block; }
+  .btn:active { opacity: 0.8; transform: scale(0.98); }
+  .btn-outline { background: transparent; color: #fff; border: 1px solid #333; }
+  .btn-sm { padding: 8px 16px; font-size: 13px; width: auto; display: inline-block; margin-top: 0; }
+
+  .quick-btns { display: flex; gap: 8px; margin-bottom: 12px; }
+  .quick-btn { background: #161616; color: #aaa; border: 1px solid #2a2a2a; border-radius: 8px;
+    padding: 10px 16px; font-size: 15px; font-family: 'Rajdhani', sans-serif; font-weight: 600; cursor: pointer; flex: 1; }
+  .quick-btn.sel { background: #c8922a; color: #080808; border-color: #c8922a; font-weight: 700; }
+
+  /* BELT AVATAR */
+  .belt-avatar { display: flex; flex-direction: column; align-items: center; margin: 12px 0; }
+  .belt-wrap { position: relative; width: 200px; height: 52px; border-radius: 4px;
+    display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.1); overflow: hidden; }
+  .belt-name { font-family: 'Bebas Neue', sans-serif; font-size: 16px; letter-spacing: 3px; text-shadow: 0 1px 4px rgba(0,0,0,0.9); z-index: 1; }
+  .belt-stripes { position: absolute; right: 0; top: 0; bottom: 0; display: flex; align-items: center; gap: 3px; padding-right: 10px; z-index: 1; }
+  .stripe { width: 8px; height: 36px; background: #111; border-radius: 1px; }
+  .belt-label { font-size: 11px; color: #555; margin-top: 6px; letter-spacing: 2px; text-transform: uppercase; }
+
+  .hours-big { font-family: 'Bebas Neue', sans-serif; font-size: 72px; color: #fff; text-align: center; line-height: 1; }
+  .hours-label { font-size: 11px; color: #555; text-align: center; letter-spacing: 3px; text-transform: uppercase; margin-top: 2px; margin-bottom: 4px; }
+  .edit-hours-btn { display: block; margin: 0 auto 16px; background: none; border: 1px solid #2a2a2a; border-radius: 6px;
+    color: #666; font-size: 12px; font-family: 'Rajdhani', sans-serif; letter-spacing: 1px; padding: 4px 12px; cursor: pointer; }
+  .edit-hours-btn:hover { border-color: #c8922a; color: #c8922a; }
+
+  .quote-card { border-left: 2px solid #c8922a; padding: 12px 16px; margin: 12px 0; font-style: italic; color: #777; font-size: 14px; line-height: 1.6; }
+
+  .chip { display: inline-flex; align-items: center; gap: 5px; background: #161616; border: 1px solid #2a2a2a;
+    border-radius: 4px; padding: 4px 10px; font-size: 13px; margin: 3px; color: #ddd; font-family: 'Rajdhani', sans-serif; }
+  .chips-wrap { display: flex; flex-wrap: wrap; margin-bottom: 12px; min-height: 32px; }
+
+  .session-card { background: #111; border: 1px solid #1e1e1e; border-radius: 10px; padding: 14px; margin-bottom: 10px; }
+  .session-date { font-size: 11px; color: #555; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px; }
+  .session-dur { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: #fff; letter-spacing: 1px; margin-bottom: 8px; }
+  .technique-chip { display: inline-flex; align-items: center; background: #161616; border: 1px solid #2a2a2a;
+    border-radius: 4px; padding: 3px 9px; font-size: 12px; margin: 2px; cursor: pointer; color: #aaa; text-decoration: none; font-family: 'Rajdhani', sans-serif; }
+  .technique-chip:hover { border-color: #c8922a; color: #c8922a; }
+
+  .promo-item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #1a1a1a; }
+  .promo-belt-bar { width: 44px; height: 14px; border-radius: 2px; display: flex; align-items: center; justify-content: flex-end; gap: 2px; padding-right: 3px; flex-shrink: 0; }
+  .promo-stripe { width: 5px; height: 10px; background: #111; border-radius: 1px; }
+  .promo-title { font-family: 'Bebas Neue', sans-serif; font-size: 16px; letter-spacing: 1px; color: #fff; }
+  .promo-date { font-size: 12px; color: #555; }
+
+  .stat-row { display: flex; gap: 8px; margin-bottom: 16px; }
+  .stat-box { flex: 1; background: #111; border: 1px solid #1e1e1e; border-radius: 8px; padding: 12px; text-align: center; }
+  .stat-num { font-family: 'Bebas Neue', sans-serif; font-size: 26px; color: #fff; letter-spacing: 1px; }
+  .stat-lbl { font-size: 10px; color: #555; text-transform: uppercase; letter-spacing: 1.5px; margin-top: 2px; }
+
+  .bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 420px;
+    background: #060606; border-top: 1px solid #1a1a1a; display: flex; z-index: 100; }
+  .nav-btn { flex: 1; padding: 10px 4px 8px; text-align: center; cursor: pointer; color: #444;
+    font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; border: none; background: none;
+    display: flex; flex-direction: column; align-items: center; gap: 4px; font-family: 'Rajdhani', sans-serif; font-weight: 600; }
+  .nav-btn.active { color: #c8922a; }
+  .nav-icon { font-size: 20px; line-height: 1; }
+
+  .onboard-step { display: none; }
+  .onboard-step.active { display: block; }
+  .step-ind { display: flex; gap: 6px; margin-bottom: 24px; }
+  .step-dot { width: 24px; height: 3px; border-radius: 2px; background: #222; }
+  .step-dot.active { background: #c8922a; }
+
+  .empty-state { text-align: center; color: #333; padding: 40px 20px; font-size: 15px; line-height: 1.8; }
+
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 200; align-items: flex-end; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: #111; border-radius: 14px 14px 0 0; padding: 24px; width: 100%; max-width: 420px; border-top: 1px solid #2a2a2a; }
+
+  label { font-size: 11px; color: #555; display: block; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700; }
+
+  .header-rule { height: 1px; background: linear-gradient(90deg, #c8922a 0%, transparent 100%); margin-bottom: 16px; }
+
+  .success-toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+    background: #0a1a0a; color: #5cb85c; border: 1px solid #2a4a2a; border-radius: 6px;
+    padding: 10px 20px; font-size: 14px; z-index: 300; display: none;
+    font-family: 'Rajdhani', sans-serif; font-weight: 600; letter-spacing: 1px; white-space: nowrap; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- BJJ WATERMARK ART - Bottom right: throw figure -->
+  <svg class="bjj-watermark" style="bottom:70px;right:-10px;width:260px;opacity:0.055;" viewBox="0 0 260 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Uchi mata / hip throw - person A throwing person B -->
+    <!-- Thrower -->
+    <circle cx="140" cy="30" r="13" stroke="white" stroke-width="2" fill="none"/>
+    <path d="M140,43 C138,60 135,75 132,88" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M136,55 C125,58 115,62 108,72 C103,80 106,90 115,92" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M136,55 C148,52 158,50 165,55 C170,60 168,70 162,74" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M132,88 C128,105 124,118 118,130" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M132,88 C138,105 142,118 148,132" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <!-- Person being thrown (airborne) -->
+    <circle cx="100" cy="55" r="12" stroke="white" stroke-width="2" fill="none"/>
+    <path d="M100,67 C92,72 80,70 70,65" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M100,67 C108,75 112,86 110,98" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M70,65 C58,62 50,68 46,78" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M70,65 C65,55 62,45 68,38" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M110,98 C105,112 98,122 92,130" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M110,98 C118,108 124,116 125,128" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <!-- Ground -->
+    <line x1="20" y1="158" x2="240" y2="158" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+    <!-- Ground players - guard position -->
+    <circle cx="80" cy="185" r="10" stroke="white" stroke-width="1.5" fill="none"/>
+    <path d="M80,195 C78,210 76,222 74,235" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <path d="M80,195 C85,210 88,222 90,235" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <path d="M78,202 C68,200 60,204 55,212" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <path d="M82,202 C93,200 100,204 104,213" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <!-- Guard passer -->
+    <circle cx="170" cy="178" r="10" stroke="white" stroke-width="1.5" fill="none"/>
+    <path d="M170,188 C168,198 162,206 155,212 C148,218 142,222 138,230" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <path d="M170,188 C174,198 178,206 182,214" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <path d="M168,193 C158,190 150,188 145,194" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <path d="M172,193 C182,192 190,195 194,203" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  </svg>
+
+  <!-- BJJ WATERMARK ART - Top left: armbar figure -->
+  <svg class="bjj-watermark" style="top:20px;left:-15px;width:200px;opacity:0.055;transform:scaleX(-1);" viewBox="0 0 200 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Armbar from guard -->
+    <!-- Bottom player -->
+    <circle cx="100" cy="30" r="12" stroke="white" stroke-width="2" fill="none"/>
+    <path d="M100,42 C98,58 95,72 92,85" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M96,52 C85,50 75,52 68,60 C62,68 64,80 72,84" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M104,52 C115,50 124,54 128,63" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M92,85 C86,100 80,112 75,125" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M92,85 C96,100 100,114 106,126" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <!-- Legs up for armbar -->
+    <path d="M92,85 C80,78 68,72 56,76 C44,80 38,92 42,104" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M92,85 C104,80 116,78 126,84 C136,90 138,102 132,112" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <!-- Top player being armbarred -->
+    <circle cx="55" cy="68" r="11" stroke="white" stroke-width="2" fill="none"/>
+    <path d="M55,79 C50,92 44,104 40,116" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M57,82 C65,88 74,90 82,86" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M40,116 C36,128 34,140 36,152" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M40,116 C44,128 48,140 46,153" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <!-- Ground line -->
+    <line x1="10" y1="165" x2="190" y2="165" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+  </svg>
+
+  <!-- ONBOARDING -->
+  <div id="screen-onboard" class="screen active" style="padding-bottom:20px;justify-content:center;">
+    <div style="text-align:center;margin-bottom:32px;">
+      <div class="app-title" style="margin-bottom:8px;">Brazilian Jiu-Jitsu</div>
+      <h1 style="font-size:44px;line-height:1.0;">HOURS ON<br>THE MAT</h1>
+      <div style="width:60px;height:2px;background:#c8922a;margin:14px auto;"></div>
+      <p style="color:#444;font-size:13px;letter-spacing:1px;">TRACK YOUR JOURNEY ON THE MAT</p>
+    </div>
+    <div id="step1" class="onboard-step active">
+      <div class="step-ind"><div class="step-dot active"></div><div class="step-dot"></div></div>
+      <h2>Training History</h2>
+      <label>Months training BJJ</label>
+      <input type="number" id="ob-months" placeholder="e.g. 18" min="0">
+      <label>Hours per week</label>
+      <input type="number" id="ob-hpw" placeholder="e.g. 6" min="0" max="40">
+      <button class="btn" onclick="goStep2()">Next →</button>
+    </div>
+    <div id="step2" class="onboard-step">
+      <div class="step-ind"><div class="step-dot"></div><div class="step-dot active"></div></div>
+      <h2>Current Rank</h2>
+      <label>Belt</label>
+      <select id="ob-belt" onchange="updateObAvatar()">
+        <option value="white">White Belt</option>
+        <option value="blue">Blue Belt</option>
+        <option value="purple">Purple Belt</option>
+        <option value="brown">Brown Belt</option>
+        <option value="black">Black Belt</option>
+      </select>
+      <label>Stripes</label>
+      <select id="ob-stripes" onchange="updateObAvatar()">
+        <option value="0">0 Stripes</option>
+        <option value="1">1 Stripe</option>
+        <option value="2">2 Stripes</option>
+        <option value="3">3 Stripes</option>
+        <option value="4">4 Stripes</option>
+      </select>
+      <div id="ob-avatar" style="margin:16px 0;"></div>
+      <button class="btn" onclick="finishOnboard()">Start Training →</button>
+    </div>
+  </div>
+
+  <!-- HOME -->
+  <div id="screen-home" class="screen">
+    <div style="margin-bottom:4px;">
+      <div class="app-title" style="font-size:11px;margin-bottom:2px;">Brazilian Jiu-Jitsu</div>
+      <h1 style="font-size:26px;">HOURS ON THE MAT</h1>
+    </div>
+    <div class="header-rule"></div>
+    <div id="home-avatar" class="belt-avatar"></div>
+    <div class="hours-big" id="home-hours">0</div>
+    <div class="hours-label">Total Hours on the Mat</div>
+    <button class="edit-hours-btn" onclick="openEditHours()">✎ Edit Hours</button>
+    <div class="stat-row">
+      <div class="stat-box"><div class="stat-num" id="home-sessions">0</div><div class="stat-lbl">Sessions</div></div>
+      <div class="stat-box"><div class="stat-num" id="home-since">—</div><div class="stat-lbl">Since</div></div>
+      <div class="stat-box"><div class="stat-num" id="home-avg">0</div><div class="stat-lbl">Avg Hrs/Wk</div></div>
+    </div>
+    <div class="quote-card" id="home-quote"></div>
+    <button class="btn" onclick="showTab('log')">Log Today's Class</button>
+  </div>
+
+  <!-- LOG CLASS -->
+  <div id="screen-log" class="screen">
+    <h2>Log a Class</h2>
+    <div class="header-rule"></div>
+    <div class="card">
+      <label>Duration (minutes)</label>
+      <div class="quick-btns">
+        <button class="quick-btn" onclick="setDur(60,this)">60</button>
+        <button class="quick-btn" onclick="setDur(90,this)">90</button>
+        <button class="quick-btn" onclick="setDur(120,this)">120</button>
+      </div>
+      <input type="number" id="log-duration" placeholder="Or enter minutes..." min="1" max="300">
+    </div>
+    <div class="card">
+      <label>Techniques Practiced</label>
+      <select id="tech-select" onchange="addTechnique(this)">
+        <option value="">— Select a technique —</option>
+      </select>
+      <div class="chips-wrap" id="selected-techs"></div>
+    </div>
+    <button class="btn" onclick="saveSession()">Save Class</button>
+  </div>
+
+  <!-- TRAINING LOG -->
+  <div id="screen-traininglog" class="screen">
+    <h2>Training Log</h2>
+    <div class="header-rule"></div>
+    <div id="log-list"></div>
+  </div>
+
+  <!-- RANK -->
+  <div id="screen-rank" class="screen">
+    <h2>My Rank</h2>
+    <div class="header-rule"></div>
+    <div id="rank-avatar" class="belt-avatar" style="margin-bottom:24px;"></div>
+    <button class="btn btn-outline" onclick="openPromoModal()">Log Promotion</button>
+    <div style="margin-top:24px;">
+      <h3>Promotion History</h3>
+      <div id="promo-list"></div>
+    </div>
+  </div>
+
+  <nav class="bottom-nav" id="bottom-nav" style="display:none;">
+    <button class="nav-btn active" onclick="showTab('home')" id="nav-home">
+      <svg class="nav-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg>
+      Home
+    </button>
+    <button class="nav-btn" onclick="showTab('log')" id="nav-log">
+      <svg class="nav-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 3"/></svg>
+      Log Class
+    </button>
+    <button class="nav-btn" onclick="showTab('traininglog')" id="nav-traininglog">
+      <svg class="nav-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M4 10h16M4 14h10"/></svg>
+      My Log
+    </button>
+    <button class="nav-btn" onclick="showTab('rank')" id="nav-rank">
+      <svg class="nav-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 2l3 6.5L22 9.5l-5 4.8 1.2 6.7L12 18l-6.2 3 1.2-6.7L2 9.5l7-1z"/></svg>
+      Rank
+    </button>
+  </nav>
+</div>
+
+<!-- PROMO MODAL -->
+<div class="modal-overlay" id="promo-modal">
+  <div class="modal">
+    <h2>Log Promotion</h2>
+    <label>New Belt</label>
+    <select id="promo-belt">
+      <option value="white">White Belt</option><option value="blue">Blue Belt</option>
+      <option value="purple">Purple Belt</option><option value="brown">Brown Belt</option>
+      <option value="black">Black Belt</option>
+    </select>
+    <label>Stripes</label>
+    <select id="promo-stripes">
+      <option value="0">0 Stripes</option><option value="1">1 Stripe</option>
+      <option value="2">2 Stripes</option><option value="3">3 Stripes</option>
+      <option value="4">4 Stripes</option>
+    </select>
+    <label>Date</label>
+    <input type="text" id="promo-date" placeholder="e.g. March 2026">
+    <button class="btn" onclick="savePromo()">Save Promotion</button>
+    <button class="btn btn-outline" style="margin-top:8px;" onclick="closePromoModal()">Cancel</button>
+  </div>
+</div>
+
+<!-- EDIT HOURS MODAL -->
+<div class="modal-overlay" id="edit-hours-modal">
+  <div class="modal">
+    <h2>Edit Total Hours</h2>
+    <label>Correct Total Hours on the Mat</label>
+    <input type="number" id="edit-hours-input" placeholder="e.g. 450" min="0" step="0.5">
+    <button class="btn" onclick="saveEditHours()">Save</button>
+    <button class="btn btn-outline" style="margin-top:8px;" onclick="closeEditHours()">Cancel</button>
+  </div>
+</div>
+
+<div class="success-toast" id="toast"></div>
+
+<script>
+// Register PWA manifest dynamically
+(function(){
+  const c=document.createElement('canvas');c.width=192;c.height=192;
+  const ctx=c.getContext('2d');
+  ctx.fillStyle='#080808';ctx.fillRect(0,0,192,192);
+  // Belt shape
+  ctx.fillStyle='#c8922a';ctx.beginPath();ctx.roundRect(16,72,160,48,6);ctx.fill();
+  // Dark stripes
+  ctx.fillStyle='#111';
+  for(let i=0;i<3;i++){ctx.beginPath();ctx.roundRect(142+i*14,80,10,32,2);ctx.fill();}
+  // Text
+  ctx.fillStyle='#fff';ctx.font='bold 22px sans-serif';ctx.textAlign='center';
+  ctx.fillText('HOTM',96,105);
+  const url=c.toDataURL('image/png');
+  const m={name:'Hours on the Mat',short_name:'Mat Hours',start_url:'.',display:'standalone',
+    background_color:'#080808',theme_color:'#080808',
+    icons:[{src:url,sizes:'192x192',type:'image/png'},{src:url,sizes:'512x512',type:'image/png'}]};
+  const blob=new Blob([JSON.stringify(m)],{type:'application/manifest+json'});
+  const link=document.createElement('link');link.rel='manifest';link.href=URL.createObjectURL(blob);
+  document.head.appendChild(link);
+  // Apple touch icon
+  const al=document.createElement('link');al.rel='apple-touch-icon';al.href=url;
+  document.head.appendChild(al);
+})();
+
+const BELT_COLORS={white:'#f0ede6',blue:'#1a3a6e',purple:'#3d1a5e',brown:'#4a2810',black:'#141414'};
+const BELT_TEXT={white:'#2a2a2a',blue:'#ffffff',purple:'#ffffff',brown:'#ffffff',black:'#ffffff'};
+const QUOTES=[
+  "A black belt is a white belt who never quit.",
+  "There is no losing in jiu jitsu — you either win or you learn.",
+  "The mat is the great equalizer.",
+  "Tap early, tap often. Your ego is not worth an injury.",
+  "Position before submission.",
+  "Jiu jitsu is not about being better than someone else — it's about being better than you used to be.",
+  "Every champion was once a beginner. Keep drilling.",
+  "The ground is my ocean, and I am its master.",
+  "It never gets easier. You just get better.",
+  "Roll like there's no ego. Tap like there's no pride."
+];
+const TECHNIQUES={
+  "Takedowns & Throws":["Single Leg Takedown","Double Leg Takedown","Hip Throw (O-goshi)","Foot Sweep (De-ashi-barai)","Fireman's Carry","Body Lock Takedown","Seoi Nage","Osoto Gari","Uchi Mata","Tai Otoshi","Tomoe Nage","Harai Goshi","Kata Guruma","Inside Trip","Outside Trip","Suplex","Koshi Guruma","Sasae Tsurikomi Ashi"],
+  "Guard Passing":["Torreando Pass","Knee Slice Pass","Stack Pass","Leg Drag Pass","X-Pass","Smash Pass","Over-Under Pass","Headquarters Pass","Long Step Pass","Double Under Pass","Bullfighter Pass","Cartwheel Pass","Pressure Pass","Folding Pass","Wrist Lock Pass","Guard Break (Standing)","Guard Break (Kneeling)"],
+  "Guard Playing":["Closed Guard","Half Guard","Spider Guard","Lasso Guard","De La Riva Guard","Reverse De La Riva","Butterfly Guard","Seated Guard","X-Guard","Single Leg X","50/50 Guard","Worm Guard","Berimbolo","Crab Ride","Rubber Guard","K-Guard","Shin-to-Shin Guard","Deep Half Guard","Z-Guard (Knee Shield)"],
+  "Sweeps":["Scissor Sweep","Hip Bump Sweep","Flower Sweep","Elevator Sweep","Lumberjack Sweep","Tripod Sweep","Sickle Sweep","Hook Sweep","Pendulum Sweep","Overhead Sweep","Tilt Sweep","Waiter Sweep","Berimbolo Sweep","De La Riva Sweep","X-Guard Sweep","Sumi Gaeshi","Butterfly Sweep","Sit-Up Sweep","Kiss of the Dragon"],
+  "Chokes — Gi":["Cross Collar Choke","Bow and Arrow Choke","Clock Choke","Loop Choke","Ezekiel Choke","Baseball Bat Choke","Paper Cutter Choke","Sliding Collar Choke","Bread Cutter Choke","Lapel Choke","Brabo Choke (Gi)","Sleeve Choke","Tornado Choke","Marcelotine"],
+  "Chokes — No Gi":["Rear Naked Choke","Triangle Choke","Guillotine Choke","Arm Triangle","North-South Choke","D'Arce Choke","Anaconda Choke","Peruvian Necktie","Buggy Choke","Von Flue Choke","Arm-In Guillotine","High Elbow Guillotine","Rear Triangle","Side Triangle","Body Triangle"],
+  "Arm Locks":["Armbar","Kimura","Americana","Omoplata","Wristlock","Tarikoplata","Monoplata","Reverse Armbar","Bicep Slicer","Arm Crush","Shoulder Lock","Mir Lock","Baratoplata","Hammer Lock"],
+  "Leg Locks":["Straight Ankle Lock","Heel Hook (Outside)","Heel Hook (Inside)","Kneebar","Toe Hold","Calf Slicer","Estima Lock","Caio Terra Foot Lock","50/50 Heel Hook","Electric Chair","Reaping Heel Hook"],
+  "Back Attacks":["Back Take (Seat Belt)","Body Triangle","Bow and Arrow from Back","Back Take from Turtle","Rolling Back Take","Crab Ride Back Take","Truck Position","Seat Belt to Rear Naked","Back Take from Half Guard"],
+  "Escapes":["Bridge and Roll (Upa)","Elbow-Knee Escape (Shrimp)","Guard Recovery","Turtle Escape","Side Control Escape","Mount Escape","Back Escape","Knee on Belly Escape","North-South Escape","Headlock Escape","Triangle Defense","Armbar Defense","Leg Lock Defense","Ghost Escape","Roll-Under Escape"],
+  "Positions & Control":["Mount","Side Control","North-South","Knee on Belly","Back Mount","Turtle Position","Sprawl","Clinch Work","Grip Fighting","Guard Retention","Framing","Kesa Gatame","Reverse Kesa","Twister Side Control"],
+  "Fundamentals":["Shrimping","Bridging","Hip Escape","Technical Standup","Safe Posture in Guard","Posture Breaking","Grip Breaking","Weight Distribution","Base and Balance","Connection and Frames","Leg Pummeling","Underhook Pummeling","Level Changes","Chain Wrestling"]
+};
+
+let state={profile:null,sessions:[],promotions:[]};
+let selectedTechs=[];
+
+function save(){try{localStorage.setItem('hotm_v2',JSON.stringify(state));}catch(e){}}
+function load(){try{const d=localStorage.getItem('hotm_v2');if(d)state=JSON.parse(d);}catch(e){}}
+
+function beltAvatar(belt,stripes,size=200){
+  const c=BELT_COLORS[belt]||'#f0ede6';
+  const tc=BELT_TEXT[belt]||'#2a2a2a';
+  const n=parseInt(stripes)||0;
+  const bname=belt.charAt(0).toUpperCase()+belt.slice(1);
+  let s='';for(let i=0;i<n;i++)s+='<div class="stripe"></div>';
+  return `<div class="belt-wrap" style="background:${c};width:${size}px;">
+    <span class="belt-name" style="color:${tc};">${bname} Belt</span>
+    <div class="belt-stripes">${s}</div>
+  </div><div class="belt-label">${n} Stripe${n!==1?'s':''}</div>`;
+}
+
+function renderBeltInEl(id,belt,stripes){const el=document.getElementById(id);if(el)el.innerHTML=beltAvatar(belt,stripes);}
+
+function goStep2(){
+  const m=parseFloat(document.getElementById('ob-months').value);
+  const h=parseFloat(document.getElementById('ob-hpw').value);
+  if(isNaN(m)||isNaN(h)){alert('Please fill in both fields');return;}
+  document.getElementById('step1').classList.remove('active');
+  document.getElementById('step2').classList.add('active');
+  updateObAvatar();
+}
+
+function updateObAvatar(){
+  document.getElementById('ob-avatar').innerHTML=beltAvatar(
+    document.getElementById('ob-belt').value,
+    document.getElementById('ob-stripes').value,160);
+}
+
+function finishOnboard(){
+  const months=parseFloat(document.getElementById('ob-months').value)||0;
+  const hpw=parseFloat(document.getElementById('ob-hpw').value)||0;
+  const belt=document.getElementById('ob-belt').value;
+  const stripes=parseInt(document.getElementById('ob-stripes').value);
+  const totalHours=parseFloat((months*4.33*hpw).toFixed(1));
+  const startDate=new Date();startDate.setMonth(startDate.getMonth()-Math.round(months));
+  state.profile={belt,stripes,totalHours,hpw,months,startDate:startDate.toISOString()};
+  state.promotions=[{belt,stripes,date:'Starting rank',ts:Date.now()}];
+  save();startApp();
+}
+
+function startApp(){
+  buildTechSelect();
+  document.getElementById('screen-onboard').classList.remove('active');
+  document.getElementById('bottom-nav').style.display='flex';
+  showTab('home');
+}
+
+function showTab(tab){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('screen-'+tab).classList.add('active');
+  document.getElementById('nav-'+tab).classList.add('active');
+  if(tab==='home')renderHome();
+  if(tab==='traininglog')renderLog();
+  if(tab==='rank')renderRank();
+}
+
+function renderHome(){
+  const p=state.profile;if(!p)return;
+  renderBeltInEl('home-avatar',p.belt,p.stripes);
+  document.getElementById('home-hours').textContent=p.totalHours.toFixed(1);
+  document.getElementById('home-sessions').textContent=state.sessions.length;
+  const sd=new Date(p.startDate);
+  document.getElementById('home-since').textContent=sd.toLocaleString('default',{month:'short',year:'2-digit'});
+  const weeks=Math.max(1,(Date.now()-new Date(p.startDate).getTime())/(1000*60*60*24*7));
+  document.getElementById('home-avg').textContent=(p.totalHours/weeks).toFixed(1);
+  document.getElementById('home-quote').textContent='\u201c'+QUOTES[Math.floor(Math.random()*QUOTES.length)]+'\u201d';
+}
+
+function renderLog(){
+  const el=document.getElementById('log-list');
+  if(!state.sessions.length){el.innerHTML='<div class="empty-state">No sessions logged yet.<br><br>Oss — go train.</div>';return;}
+  el.innerHTML=[...state.sessions].reverse().map(s=>{
+    const d=new Date(s.date);
+    const ds=d.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
+    const chips=(s.techniques||[]).map(t=>{
+      const q=encodeURIComponent(t+' jiu jitsu tutorial');
+      return `<a class="technique-chip" href="https://www.youtube.com/results?search_query=${q}" target="_blank">${t}</a>`;
+    }).join('');
+    return `<div class="session-card">
+      <div class="session-date">${ds}</div>
+      <div class="session-dur">${s.duration} MIN &nbsp;·&nbsp; ${(s.duration/60).toFixed(1)} HRS</div>
+      <div>${chips||'<span style="color:#333;font-size:12px;font-family:Rajdhani,sans-serif;">No techniques logged</span>'}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderRank(){
+  const p=state.profile;if(!p)return;
+  renderBeltInEl('rank-avatar',p.belt,p.stripes);
+  const el=document.getElementById('promo-list');
+  if(!state.promotions.length){el.innerHTML='<div style="color:#333;font-size:14px;">No promotions logged.</div>';return;}
+  el.innerHTML=[...state.promotions].reverse().map(pr=>{
+    const bc=BELT_COLORS[pr.belt]||'#888';
+    const bn=pr.belt.charAt(0).toUpperCase()+pr.belt.slice(1);
+    let s='';for(let i=0;i<(pr.stripes||0);i++)s+='<div class="promo-stripe"></div>';
+    return `<div class="promo-item">
+      <div class="promo-belt-bar" style="background:${bc};">${s}</div>
+      <div style="flex:1;">
+        <div class="promo-title">${bn} Belt · ${pr.stripes} Stripe${pr.stripes!==1?'s':''}</div>
+        <div class="promo-date">${pr.date}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function buildTechSelect(){
+  const sel=document.getElementById('tech-select');
+  for(const[cat,techs]of Object.entries(TECHNIQUES)){
+    const og=document.createElement('optgroup');og.label=cat;
+    techs.forEach(t=>{const o=document.createElement('option');o.value=t;o.textContent=t;og.appendChild(o);});
+    sel.appendChild(og);
+  }
+}
+
+function addTechnique(sel){
+  const v=sel.value;if(!v||selectedTechs.includes(v)){sel.value='';return;}
+  selectedTechs.push(v);sel.value='';renderChips();
+}
+
+function removeTech(idx){selectedTechs.splice(idx,1);renderChips();}
+
+function renderChips(){
+  document.getElementById('selected-techs').innerHTML=selectedTechs.map((t,i)=>
+    `<div class="chip">${t}<span style="cursor:pointer;color:#555;margin-left:4px;font-size:16px;" onclick="removeTech(${i})">×</span></div>`
+  ).join('');
+}
+
+function setDur(v,btn){
+  document.getElementById('log-duration').value=v;
+  document.querySelectorAll('.quick-btn').forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel');
+}
+
+function saveSession(){
+  const dur=parseInt(document.getElementById('log-duration').value);
+  if(!dur||dur<1){alert('Please enter a duration');return;}
+  state.sessions.push({id:Date.now(),date:new Date().toISOString(),duration:dur,techniques:[...selectedTechs]});
+  state.profile.totalHours=parseFloat((state.profile.totalHours+dur/60).toFixed(1));
+  save();selectedTechs=[];renderChips();
+  document.getElementById('log-duration').value='';
+  document.querySelectorAll('.quick-btn').forEach(b=>b.classList.remove('sel'));
+  showToast('Class saved! +'+(dur/60).toFixed(1)+' hrs · Oss!');
+}
+
+function openEditHours(){
+  document.getElementById('edit-hours-input').value=state.profile.totalHours;
+  document.getElementById('edit-hours-modal').classList.add('open');
+}
+function closeEditHours(){document.getElementById('edit-hours-modal').classList.remove('open');}
+function saveEditHours(){
+  const h=parseFloat(document.getElementById('edit-hours-input').value);
+  if(isNaN(h)||h<0){alert('Please enter a valid number');return;}
+  state.profile.totalHours=parseFloat(h.toFixed(1));
+  save();closeEditHours();renderHome();
+  showToast('Hours updated!');
+}
+
+function showToast(msg){
+  const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';
+  setTimeout(()=>t.style.display='none',2500);
+}
+
+function openPromoModal(){document.getElementById('promo-modal').classList.add('open');}
+function closePromoModal(){document.getElementById('promo-modal').classList.remove('open');}
+
+function savePromo(){
+  const belt=document.getElementById('promo-belt').value;
+  const stripes=parseInt(document.getElementById('promo-stripes').value);
+  const date=document.getElementById('promo-date').value||new Date().toLocaleDateString('en-CA',{month:'long',year:'numeric'});
+  state.profile.belt=belt;state.profile.stripes=stripes;
+  state.promotions.push({belt,stripes,date,ts:Date.now()});
+  save();closePromoModal();renderRank();
+  showToast('Promotion logged! Congrats · Oss!');
+}
+
+load();
+if(state.profile){
+  buildTechSelect();
+  document.getElementById('screen-onboard').classList.remove('active');
+  document.getElementById('bottom-nav').style.display='flex';
+  showTab('home');
+}
+</script>
+</body>
+</html>
